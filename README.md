@@ -3,7 +3,9 @@
 一个单文件 HTML 阅读页，把开源书《高性价比人生指南》的全部 32 节、528 条建议
 渲染成可搜索的页面。手机上打开就能看，不用装任何东西。
 
-**在线阅读：** https://cdyforever.github.io/how-to-live-better/
+**在线阅读（可装到手机、离线可用）：** https://wcy52361230.github.io/how-to-live-better/
+
+备用地址（旧站，内容不自动同步、无离线功能）：https://cdyforever.github.io/how-to-live-better/
 
 ## 装到手机（安卓，离线可用）
 
