@@ -5,6 +5,17 @@
 
 **在线阅读：** https://cdyforever.github.io/how-to-live-better/
 
+## 装到手机（安卓，离线可用）
+
+1. 手机 Chrome 打开上面的链接
+2. 点右上角 ⋮ → 「安装应用」（旧版浏览器显示「添加到主屏幕」）
+3. 桌面出现图标。之后**断网也能打开**，搜索、只看 A 级、切节全部照常
+
+原理：`manifest.json` + `sw.js`（Service Worker）。打开页面时走**网络优先**——联网就拿当天最新内容，4 秒超时或断网则用本地缓存；正文和图标都缓存在手机上，所以离线不白屏。
+
+> 注意：PWA 相关标签写在 `build.py` 里，不在 `index.html` 里。
+> `index.html` 每天由 Actions 重新生成，直接手改会被覆盖。
+
 ## 这是什么
 
 原书由 [eternity4719/HowToLiveBetter](https://github.com/eternity4719/HowToLiveBetter)
@@ -24,10 +35,27 @@
 - 手机端：搜索框独占一行、顶栏向下滚动后自动收成一行、回到顶部按钮
 - 明暗主题切换
 - 支持直接打印
+- 可安装到手机主屏幕，断网可用（PWA）
 
 ## 本地使用
 
 不用构建，双击 `index.html` 即可。
+
+`file://` 协议下浏览器不允许注册 Service Worker，所以本地双击打开时没有离线缓存层——
+但页面本身零外部依赖，照样能读。
+
+## 文件清单
+
+| 文件 | 作用 |
+| --- | --- |
+| `build.py` | 生成器，唯一需要维护的源码（含 PWA 标签注入） |
+| `index.html` | 产物，每天由 Actions 重建，不要手改 |
+| `manifest.json` | PWA 清单：名称、图标、standalone 显示 |
+| `sw.js` | Service Worker：导航网络优先、静态资源缓存优先 |
+| `icons/` | 主屏幕图标（192 / 512 / 512-maskable） |
+| `scripts/make_icons.py` | 生成图标，改配色或图形后重跑即可 |
+
+图标重新生成：`python3 scripts/make_icons.py`（需要 Pillow）。
 
 ## 重新生成
 
@@ -35,7 +63,7 @@
 # 需要先有一份上游仓库的本地克隆
 git clone --depth 1 https://github.com/eternity4719/HowToLiveBetter.git /tmp/upstream
 
-# 全部 32 节
+# 全部节
 python build.py all -o index.html --repo /tmp/upstream
 
 # 只做某几节

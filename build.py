@@ -11,6 +11,10 @@
 源目录也可用环境变量 HLTB_REPO 覆盖（供 GitHub Actions 使用，优先级低于 --repo）。
 产物默认与脚本同目录，单个 .html，无任何外部依赖，双击即可打开、可离线读。
 
+线上站点另外带上 manifest.json / sw.js / icons/，支持「添加到手机主屏幕」后离线打开。
+这些标签在下面的 PWA_HEAD 与 SW_REG 里注入——不要手改 index.html，
+它每天会被 .github/workflows/rebuild.yml 重新生成并覆盖。
+
 数字与标签的口径完全照抄仓库 tools/sync-stats.ps1 与 index.html 的 COST_W / e.ratio：
 仓库改了那两行，这里也要同步改，否则性价比档会和官方检索页对不上。
 """
@@ -38,6 +42,31 @@ ARGS = parse_args()
 REPO = Path(ARGS.repo or os.environ.get("HLTB_REPO") or r"D:\Agent\HowToLiveBetter")
 
 UPSTREAM = "https://github.com/eternity4719/HowToLiveBetter"
+
+# PWA：让页面能"添加到手机主屏幕"并离线打开。
+# 这些标签要写在 build.py 里而不是手改 index.html——index.html 每天由
+# .github/workflows/rebuild.yml 重新生成，手改会被覆盖。
+PWA_HEAD = (
+    '<link rel="manifest" href="manifest.json">'
+    '<link rel="icon" href="icons/icon-192.png" sizes="192x192" type="image/png">'
+    '<link rel="apple-touch-icon" href="icons/icon-192.png">'
+    '<meta name="mobile-web-app-capable" content="yes">'
+    '<meta name="apple-mobile-web-app-capable" content="yes">'
+    '<meta name="apple-mobile-web-app-title" content="高性价比">'
+    '<meta name="apple-mobile-web-app-status-bar-style" content="default">'
+)
+
+# Service Worker 只在安全上下文注册（https 或 localhost）；
+# file:// 双击打开时不注册，页面照常可用。
+SW_REG = (
+    '<script>(function(){'
+    'if(!("serviceWorker" in navigator))return;'
+    'if(location.protocol!=="https:"&&location.hostname!=="localhost")return;'
+    'window.addEventListener("load",function(){'
+    'navigator.serviceWorker.register("sw.js",{updateViaCache:"none"})'
+    '.catch(function(){});'
+    '});})();</script>'
+)
 
 
 def avail_sections():
@@ -586,8 +615,8 @@ def main():
             '<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1b1b1f">'
             '<meta name="description" content="《高性价比人生指南》%s，共 %d 条建议，'
             '每条标注成本、收益、证据等级（A/B/C）与原始文献链接。单文件、零依赖、可离线阅读。">'
-            '<title>高性价比人生指南 · %s</title><style>%s</style></head><body>'
-            % (SCOPE, total, SCOPE, CSS))
+            '<title>高性价比人生指南 · %s</title>%s<style>%s</style></head><body>'
+            % (SCOPE, total, SCOPE, PWA_HEAD, CSS))
 
     bar = ('<header class="bar"><h1>高性价比人生指南<small>%s</small></h1>'
            '<select class="jump" id="jump" aria-label="跳转到某一节">%s</select>'
@@ -624,7 +653,8 @@ def main():
 
     # 注意：JS 字符串只含脚本体，<script> 开合标签在这里拼。
     # 之前漏了开标签，导致整段 JS 被当纯文本渲染在页面底部、脚本从未执行。
-    out = head + bar + shell + "<script>" + JS + "</script></body></html>"
+    out = (head + bar + shell + "<script>" + JS + "</script>"
+           + SW_REG + "</body></html>")
 
     if ARGS.out:
         name = Path(ARGS.out)
